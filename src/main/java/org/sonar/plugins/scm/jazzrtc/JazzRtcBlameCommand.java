@@ -70,25 +70,51 @@ public class JazzRtcBlameCommand extends BlameCommand {
   }
 
   private void blame(FileSystem fs, InputFile inputFile, BlameOutput output) {
-    String filename = inputFile.relativePath();
-    Command cl = createCommandLine(fs.baseDir(), filename);
-    JazzRtcBlameConsumer consumer = new JazzRtcBlameConsumer(filename);
-    StringStreamConsumer stderr = new StringStreamConsumer();
-
-    int exitCode = execute(cl, consumer, stderr);
-    if (ArrayUtils.contains(UNTRACKED_BLAME_RETURN_CODES, exitCode)) {
-      LOG.debug("Skipping untracked file: {}. Annotate command exit code: {}", filename, exitCode);
-      return;
-    } else if (exitCode != 0) {
-      throw new IllegalStateException("The jazz annotate command [" + cl.toString() + "] failed: " + stderr.getOutput());
-    }
-
-    List<BlameLine> lines = consumer.getLines();
-    if (lines.size() == inputFile.lines() - 1) {
-      // SONARPLUGINS-3097 JazzRTC does not report blame on last empty line
-      lines.add(lines.get(lines.size() - 1));
-    }
-    output.blameResult(inputFile, lines);
+     String filename = inputFile.relativePath();
+     // by Balz Guenat, March 2018:
+     // add retries if exit code is 13.
+     // this is to fix some weird issue where annotate fails only sometimes.
+     int maxRetries = 2;
+     int exitCode = 0;
+     int tryNumber = 0;
+     while (tryNumber < maxRetries) {
+        try {
+           Command cl = createCommandLine(fs.baseDir(), filename);
+           JazzRtcBlameConsumer consumer = new JazzRtcBlameConsumer(filename);
+           StringStreamConsumer stderr = new StringStreamConsumer();
+   
+           exitCode = execute(cl, consumer, stderr);
+           if (ArrayUtils.contains(UNTRACKED_BLAME_RETURN_CODES, exitCode)) {
+              LOG.debug("Skipping untracked file: {}. Annotate command exit code: {}", filename, exitCode);
+              return;
+           } else if (exitCode != 0) {
+              throw new IllegalStateException(
+                       "The jazz annotate command [" + cl.toString() + "] failed with exit code " + String.valueOf(exitCode) + ": " + stderr.getOutput());
+           }
+   
+           List<BlameLine> lines = consumer.getLines();
+           if (lines.size() == inputFile.lines() - 1) {
+              // SONARPLUGINS-3097 JazzRTC does not report blame on last empty line
+              lines.add(lines.get(lines.size() - 1));
+           }
+           output.blameResult(inputFile, lines);
+           return;
+        } catch (IllegalStateException e) {
+           // retry after 2 sec but only if exit code was 13
+           if (exitCode == 13) {
+              tryNumber++;
+              try {
+                 Thread.sleep(2000);
+              }
+              catch (InterruptedException ignored) {
+                 // carry on.
+              }
+              continue;
+           } else {
+              throw e;
+           }
+        }
+     }
   }
 
   public int execute(Command cl, StreamConsumer consumer, StreamConsumer stderr) {
