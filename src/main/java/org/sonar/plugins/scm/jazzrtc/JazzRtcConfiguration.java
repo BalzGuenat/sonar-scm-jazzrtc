@@ -36,9 +36,14 @@ import java.util.List;
 public class JazzRtcConfiguration implements BatchComponent {
 
   private static final String CATEGORY_JAZZ = "Jazz RTC";
+
   private static final long CMD_TIMEOUT = 60_000;
+
   public static final String USER_PROP_KEY = "sonar.jazzrtc.username";
+
   public static final String PASSWORD_PROP_KEY = "sonar.jazzrtc.password.secured";
+
+  public static final String PASSWORD_FILE_PROP_KEY = "sonar.jazzrtc.password.file";
 
   private final Settings settings;
 
@@ -48,24 +53,33 @@ public class JazzRtcConfiguration implements BatchComponent {
 
   public static List<PropertyDefinition> getProperties() {
     return ImmutableList.of(
-      PropertyDefinition.builder(USER_PROP_KEY)
-        .name("Username")
-        .description("Username to be used for Jazz RTC authentication")
-        .type(PropertyType.STRING)
-        .onQualifiers(Qualifiers.PROJECT)
-        .category(CoreProperties.CATEGORY_SCM)
-        .subCategory(CATEGORY_JAZZ)
-        .index(0)
-        .build(),
-      PropertyDefinition.builder(PASSWORD_PROP_KEY)
-        .name("Password")
-        .description("Password to be used for Jazz RTC authentication")
-        .type(PropertyType.PASSWORD)
-        .onQualifiers(Qualifiers.PROJECT)
-        .category(CoreProperties.CATEGORY_SCM)
-        .subCategory(CATEGORY_JAZZ)
-        .index(1)
-        .build());
+        PropertyDefinition.builder(USER_PROP_KEY)
+            .name("Username")
+            .description("Username to be used for Jazz RTC authentication")
+            .type(PropertyType.STRING)
+            .onQualifiers(Qualifiers.PROJECT)
+            .category(CoreProperties.CATEGORY_SCM)
+            .subCategory(CATEGORY_JAZZ)
+            .index(0)
+            .build(),
+        PropertyDefinition.builder(PASSWORD_PROP_KEY)
+            .name("Password")
+            .description("Password to be used for Jazz RTC authentication")
+            .type(PropertyType.PASSWORD)
+            .onQualifiers(Qualifiers.PROJECT)
+            .category(CoreProperties.CATEGORY_SCM)
+            .subCategory(CATEGORY_JAZZ)
+            .index(1)
+            .build(),
+        PropertyDefinition.builder(PASSWORD_FILE_PROP_KEY)
+            .name("Password File")
+            .description("Password file to be used for Jazz RTC authentication")
+            .type(PropertyType.STRING)
+            .onQualifiers(Qualifiers.PROJECT)
+            .category(CoreProperties.CATEGORY_SCM)
+            .subCategory(CATEGORY_JAZZ)
+            .index(2)
+            .build());
   }
 
   @CheckForNull
@@ -77,7 +91,12 @@ public class JazzRtcConfiguration implements BatchComponent {
   public String password() {
     return settings.getString(PASSWORD_PROP_KEY);
   }
-  
+
+  @CheckForNull
+  public String passwordFile() {
+    return settings.getString(PASSWORD_FILE_PROP_KEY);
+  }
+
   public long commandTimeout() {
     return CMD_TIMEOUT;
   }
