@@ -107,9 +107,9 @@ public class JazzRtcBlameCommand extends BlameCommand {
                  Thread.sleep(2000);
               }
               catch (InterruptedException ignored) {
-                 // carry on.
+                 Thread.currentThread().interrupt();
+                 throw e;
               }
-              continue;
            } else {
               throw e;
            }
